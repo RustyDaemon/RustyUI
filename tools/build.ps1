@@ -228,4 +228,4 @@ if ($ChangelogBody) {
     Write-Host '-------------------------------------'
 }
 Write-Host ''
-Write-Host 'Upload at: https://legacy.curseforge.com/wow/addons/<your-project>/upload-file'
+Write-Host 'Upload at: https://legacy.curseforge.com/wow/addons/rustyui/upload-file'

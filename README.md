@@ -1,6 +1,10 @@
 <div align="center">
 
+<img src="assets/logo.png" alt="RustyUI" width="128">
+
 <h1>RustyUI</h1>
+
+[![CurseForge](https://img.shields.io/badge/download-CurseForge-orange)](https://www.curseforge.com/wow/addons/rustyui)
 
 A clean, flat reskin of the default World of Warcraft UI.
 
@@ -11,6 +15,8 @@ RustyUI gives Blizzard's frames near-black panels, borders one screen pixel thin
 It restyles Blizzard's own frames rather than replacing them. Frames keep their places, Edit Mode keeps working, and nothing is moved or hidden in combat.
 
 Works on Retail and WoW Forever, from the same download.
+
+➡️ [Download on CurseForge](https://www.curseforge.com/wow/addons/rustyui)
 
 ## What it skins
 

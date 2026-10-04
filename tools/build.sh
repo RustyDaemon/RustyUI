@@ -242,4 +242,4 @@ if [ -n "$CHANGELOG_BODY" ]; then
     echo '-------------------------------------'
 fi
 echo
-echo 'Upload at: https://legacy.curseforge.com/wow/addons/<your-project>/upload-file'
+echo 'Upload at: https://legacy.curseforge.com/wow/addons/rustyui/upload-file'
