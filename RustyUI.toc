@@ -1,0 +1,42 @@
+## Interface: 120100, 16001
+## Title: RustyUI
+## Author: RustyDaemon
+## Version: 0.5.2
+## Notes: A clean, flat reskin of the default World of Warcraft UI
+## IconTexture: Interface\Icons\inv_ore_iron_01
+## SavedVariables: RustyUIDB
+## AddonCompartmentFunc: RustyUI_OnAddonCompartmentClick
+## X-License: GPL v3
+
+Core.lua
+
+kit\Palette.lua
+kit\Primitives.lua
+kit\Controls.lua
+kit\Confirm.lua
+
+skin\Skin.lua
+skin\Pixels.lua
+skin\Bars.lua
+skin\Widgets.lua
+
+modules\ActionBars.lua
+modules\MenuBar.lua
+modules\XPBar.lua
+modules\Bags.lua
+modules\UnitFrames.lua
+modules\Minimap.lua
+modules\Tooltips.lua
+modules\CastBars.lua
+modules\Auras.lua
+modules\Chat.lua
+modules\ObjectiveTracker.lua
+modules\Popups.lua
+modules\Timers.lua
+modules\Talents.lua
+
+settings\Layout.lua
+settings\Options.lua
+settings\Rows.lua
+settings\Cards.lua
+settings\Window.lua
