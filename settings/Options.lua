@@ -49,6 +49,21 @@ local classGet, classSet = setting("unitframes", "classColors", "unitframes")
 local bagQualityGet, bagQualitySet = setting("bags", "qualityBorders", "bags")
 local tipQualityGet, tipQualitySet = setting("tooltips", "qualityBorders", "tooltips")
 
+-- Each XP bar look keeps a height of its own; only the selected look's slider shows.
+local function xpHeight(style, order)
+    return {
+        type = "range", order = order, name = "Height", min = style.min, max = style.max, step = 1,
+        desc = "How tall the " .. style.text:lower() .. " bar is. Each style keeps its own height.",
+        get = function() return RUI:xpHeight(style.value) end,
+        set = function(_, value)
+            RUI.db.xpbar.heights[style.value] = value
+            RUI:refresh("xpbar")
+        end,
+        disabled = moduleOff("xpbar"),
+        hidden = function() return RUI.db.xpbar.style ~= style.value end,
+    }
+end
+
 local options = {
     args = {
         intro = {
@@ -304,6 +319,19 @@ local options = {
                     name = "Click a style to switch to it; it changes right away. The previews show "
                         .. "sample numbers, so they can be compared at any level. Hover the real bar for "
                         .. "the full numbers. At the level cap it shows your watched reputation instead.",
+                },
+                slimHeight = xpHeight(RUI.xpStyles[1], 3),
+                segmentedHeight = xpHeight(RUI.xpStyles[2], 3),
+                panelHeight = xpHeight(RUI.xpStyles[3], 3),
+                edgeHeight = xpHeight(RUI.xpStyles[4], 3),
+                defaultHeight = {
+                    type = "execute", order = 4, name = "Default height",
+                    desc = "Puts the selected style back to its own height",
+                    func = function()
+                        RUI.db.xpbar.heights[RUI.db.xpbar.style] = nil
+                        RUI:refresh("xpbar")
+                    end,
+                    disabled = moduleOff("xpbar"),
                 },
             },
         },

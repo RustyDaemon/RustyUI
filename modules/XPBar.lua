@@ -17,11 +17,12 @@ local _, ns = ...
 
 local RUI, UI, S = ns.RUI, ns.UI, ns.Skin
 
+-- `height` is each look's default; `min` and `max` bound the height setting.
 local STYLES = {
-    { value = "slim",      text = "Slim",        height = 8 },
-    { value = "segmented", text = "Segmented",   height = 10 },
-    { value = "panel",     text = "Panel",       height = 26 },
-    { value = "edge",      text = "Screen edge", height = 6 },
+    { value = "slim",      text = "Slim",        height = 8,  min = 4,  max = 20 },
+    { value = "segmented", text = "Segmented",   height = 10, min = 6,  max = 24 },
+    { value = "panel",     text = "Panel",       height = 26, min = 20, max = 40 },
+    { value = "edge",      text = "Screen edge", height = 6,  min = 4,  max = 16 },
 }
 
 RUI.xpStyles = STYLES
@@ -29,6 +30,9 @@ RUI.xpStyles = STYLES
 local SEGMENTS = 20
 local SEGMENT_GAP = 2
 local TICKS = 10
+
+-- The height of Blizzard's bar, which the action bars already leave room for.
+local BLIZZARD_HEIGHT = 12
 
 -- Blizzard's bars, hidden while this one shows. The first that exists is where this one goes.
 local BLIZZARD_BARS = {
@@ -52,12 +56,21 @@ local function styleOf(value)
     return STYLES[1]
 end
 
+-- A style's height as set, kept inside its range.
+function RUI:xpHeight(value)
+    local style = styleOf(value)
+    local saved = RUI.db.xpbar.heights and RUI.db.xpbar.heights[style.value]
+
+    return math.min(math.max(saved or style.height, style.min), style.max)
+end
+
 -- How much taller than Blizzard's bar this one is, for the action bars to make room on clients
--- where RustyUI lays them out.
+-- where RustyUI lays them out. The screen-edge line is nowhere near them.
 function RUI:xpExtraGap()
     if (not root or not RUI:isEnabled("xpbar")) then return 0 end
+    if (not current or current.value == "edge") then return 0 end
 
-    return current and current.value == "panel" and 14 or 0
+    return math.max(RUI:xpHeight(current.value) - BLIZZARD_HEIGHT, 0)
 end
 
 -- Data ------------------------------------------------------------------------------------------
@@ -281,7 +294,7 @@ function renderers.panel(frame)
 
     local badge = frame:CreateTexture(nil, "ARTWORK")
     badge:SetPoint("LEFT", 4, 0)
-    badge:SetSize(30, 18)
+    badge:SetWidth(30)
     badge:SetColorTexture(UI:rgb("accentLit"))
 
     local badgeEdge = S:lines(frame, badge, 0, "OVERLAY")
@@ -295,7 +308,6 @@ function renderers.panel(frame)
     local track = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
     track:SetPoint("LEFT", badge, "RIGHT", 8, 0)
     track:SetPoint("RIGHT", label, "LEFT", -10, 0)
-    track:SetHeight(8)
     track:SetColorTexture(0, 0, 0, 0.55)
 
     local trackEdge = S:lines(frame, track, 1, "BORDER")
@@ -307,6 +319,11 @@ function renderers.panel(frame)
 
     return function(snap)
         local r, g, b = fillColor(snap)
+        local height = frame:GetHeight()
+
+        -- At the default 26 the badge is 18 high and the track 8.
+        badge:SetHeight(height - 8)
+        track:SetHeight(math.max(math.floor((height - 10) / 2), 4))
 
         badgeEdge:SetColor(r * 0.7, g * 0.7, b * 0.7)
         level:SetTextColor(r, g, b)
@@ -335,7 +352,6 @@ function renderers.edge(frame)
     local track = frame:CreateTexture(nil, "BACKGROUND")
     track:SetPoint("BOTTOMLEFT")
     track:SetPoint("BOTTOMRIGHT")
-    track:SetHeight(3)
     track:SetColorTexture(0, 0, 0, 0.6)
 
     local set = fillPair(frame, track, 0)
@@ -344,11 +360,15 @@ function renderers.edge(frame)
     local glow = frame:CreateTexture(nil, "BORDER")
     glow:SetColorTexture(1, 1, 1, 1)
     glow:SetPoint("BOTTOMLEFT", track, "TOPLEFT")
-    glow:SetHeight(10)
 
     return function(snap)
         local filled = ratios(snap)
         local r, g, b = fillColor(snap)
+        local height = frame:GetHeight()
+
+        -- The line is the frame's height less a little room to hover it by: 3 at the default 6.
+        track:SetHeight(math.max(height - 3, 1))
+        glow:SetHeight(height + 4)
 
         set(snap)
 
@@ -501,7 +521,7 @@ local function place()
         end
     end
 
-    root:SetHeight(current.height)
+    root:SetHeight(RUI:xpHeight(current.value))
 end
 
 local function redraw()
@@ -539,7 +559,7 @@ local function applyStyle()
     hideBlizzard()
     redraw()
 
-    -- The panel is taller than Blizzard's bar; the action bars make room for it.
+    -- A bar taller than Blizzard's needs the action bars to make room for it.
     RUI:refresh("actionbars")
 end
 

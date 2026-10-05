@@ -43,7 +43,8 @@ local defaults = {
     -- spacing is unset by default: Blizzard's own gaps between buttons stand until it is changed.
     actionbars = { hotkeys = true, macroNames = false, emptySlots = false, barGap = 0 },
     minimap = { style = "square", dayNight = true },
-    xpbar = { style = "slim" },
+    -- heights holds only the styles whose height was changed; the rest use their own default.
+    xpbar = { style = "slim", heights = {} },
     castbars = { style = "slim" },
     unitframes = { classColors = true },
     bags = { qualityBorders = true },
