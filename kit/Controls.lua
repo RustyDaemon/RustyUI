@@ -373,8 +373,9 @@ local function formatStep(value, step)
     return string.format("%.2f", value)
 end
 
--- A single-line text field with a caption above it, like the dropdown's.
-function UI:inputBox(parent, width, height, label, getValue, onCommit)
+-- A single-line text field with a caption above it, like the dropdown's. A read-only field keeps
+-- its text but can still be selected and copied.
+function UI:inputBox(parent, width, height, label, getValue, onCommit, readOnly)
     local frame = self:panel(parent, "window", true)
     frame:SetSize(width, height or 26)
 
@@ -400,6 +401,8 @@ function UI:inputBox(parent, width, height, label, getValue, onCommit)
     editBox:SetScript("OnEditFocusGained", function()
         focused = true
         frame:SetBorderColor(UI:rgb("accentDim"))
+
+        if (readOnly) then editBox:HighlightText() end
     end)
 
     editBox:SetScript("OnEditFocusLost", function()
@@ -409,8 +412,12 @@ function UI:inputBox(parent, width, height, label, getValue, onCommit)
         show()
     end)
 
+    editBox:SetScript("OnTextChanged", function(_, userInput)
+        if (readOnly and userInput) then show() end
+    end)
+
     editBox:SetScript("OnEnterPressed", function()
-        if (onCommit) then onCommit(editBox:GetText()) end
+        if (not readOnly and onCommit) then onCommit(editBox:GetText()) end
 
         editBox:ClearFocus()
     end)

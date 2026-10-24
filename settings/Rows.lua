@@ -130,6 +130,25 @@ function builders.execute(parent, option, info, changed)
     return row
 end
 
+function builders.input(parent, option, info, changed)
+    local row = CreateFrame("Frame", nil, parent)
+    row:SetHeight(44)
+
+    -- readOnly is not an AceConfig key: it marks a field meant only for copying, like the website.
+    local box = UI:inputBox(row, CONTROL_WIDTH, 26, option.name,
+        function() return resolve(option.get, info) end,
+        function(text)
+            option.set(info, text)
+            changed()
+        end,
+        option.readOnly)
+    box:SetPoint("BOTTOMLEFT", 0, 0)
+
+    row.Refresh = function() box:Refresh() end
+
+    return row
+end
+
 -- Dims a row and stops it taking clicks while its option is disabled.
 function L.addDisabledCover(row, option, info)
     if (option.disabled == nil) then return end

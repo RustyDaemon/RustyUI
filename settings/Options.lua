@@ -162,6 +162,15 @@ local options = {
             "Flat breath, fatigue and countdown bars; square extra action and zone ability buttons", 22),
         talentsModule = moduleToggle("talents", "Talents window",
             "The talents window and its tabs; square talents bordered in their state color", 23),
+        websiteHeader = { type = "header", order = 25, name = "Website" },
+        website = {
+            type = "input",
+            order = 26,
+            name = "The guide, FAQ and changelog. Click to select the link, then copy it into your browser.",
+            readOnly = true, -- the settings window's own key: a box to copy from
+            get = function() return RUI.website end,
+            set = function() end,
+        },
         resetHeader = { type = "header", order = 30, name = "Reset" },
         reset = {
             type = "execute",

@@ -18,6 +18,7 @@ local getMetadata = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
 local isAddOnLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
 
 RUI.version = getMetadata(ADDON, "Version") or ""
+RUI.website = "https://rui.rustydaemon.com"
 
 local defaults = {
     accent = "gold",

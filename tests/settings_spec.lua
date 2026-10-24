@@ -141,3 +141,28 @@ describe("the settings window", function()
         assert.is_true(_G.RustyUISettingsFrame.reload:IsShown())
     end)
 end)
+
+describe("read-only inputs", function()
+    it("put the text back when it is typed over", function()
+        local ns = wow.load()
+
+        wow.addonLoaded(nil)
+        ns.RUI.website = "https://example.test"
+        ns.RUI:openSettings(1)
+
+        local row
+
+        for _, child in ipairs(_G.RustyUISettingsFrame.pages[1].frame.children) do
+            if (child.info and child.info[1] == "website") then row = child end
+        end
+
+        local editBox = row.children[1].editBox
+
+        assert.are.equal("https://example.test", editBox:GetText())
+
+        editBox:SetText("oops")
+        editBox:Fire("OnTextChanged", true)
+
+        assert.are.equal("https://example.test", editBox:GetText())
+    end)
+end)

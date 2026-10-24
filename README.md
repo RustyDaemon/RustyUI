@@ -16,7 +16,7 @@ It restyles Blizzard's own frames rather than replacing them. Frames keep their 
 
 Works on Retail and WoW Forever, from the same download.
 
-➡️ [Download on CurseForge](https://www.curseforge.com/wow/addons/rustyui)
+➡️ [Download on CurseForge](https://www.curseforge.com/wow/addons/rustyui) · 🌐 [Website](https://rui.rustydaemon.com)
 
 ## What it skins
 
