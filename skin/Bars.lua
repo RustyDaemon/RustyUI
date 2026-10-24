@@ -123,8 +123,36 @@ function S:barBackdrop(bar)
 end
 
 -- Tints a bar's empty part as a dim shade of its fill, so where the fill ends reads at a glance.
+-- Without a color, the track goes back to its plain dark fill.
 function S:paintTrack(bar, r, g, b)
     local track = tracks[bar]
 
-    if (track) then track:SetColorTexture(r * TRACK_SHADE, g * TRACK_SHADE, b * TRACK_SHADE, 0.95) end
+    if (not track) then return end
+
+    if (r) then
+        track:SetColorTexture(r * TRACK_SHADE, g * TRACK_SHADE, b * TRACK_SHADE, 0.95)
+    else
+        track:SetColorTexture(UI:rgb("window", 0.9))
+    end
+end
+
+-- A unit's color: a player's class color when classColors is on, grey for a mob someone else has
+-- tapped, and the reaction color otherwise. Nil when there is no unit. Unit data can be a secret
+-- value in Midnight combat, which errors when tested, so callers ask inside pcall.
+function S:unitColor(unit, classColors)
+    if (not unit or not UnitExists(unit)) then return nil end
+
+    if (classColors and UnitIsPlayer(unit)) then
+        local _, class = UnitClass(unit)
+        local color = class and (CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS)[class]
+
+        if (color) then return color.r, color.g, color.b end
+    end
+
+    if (UnitIsTapDenied and UnitIsTapDenied(unit)) then return 0.5, 0.5, 0.5 end
+
+    local reaction = UnitReaction(unit, "player")
+    local color = reaction and FACTION_BAR_COLORS and FACTION_BAR_COLORS[reaction]
+
+    if (color) then return color.r, color.g, color.b end
 end

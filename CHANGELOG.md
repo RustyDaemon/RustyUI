@@ -1,3 +1,10 @@
+## Unreleased
+
+- Updated for Retail 12.1.5.
+- Action bars: short keybindings (`sM4`, `cQ`, `N5`), and buttons turn red when out of range.
+- Buffs and debuffs: short timers (`12m`, `45`) that turn red in their last 5 seconds.
+- Tooltips: unit borders and health bars in class or reaction color.
+
 ## 0.5.2
 
 - First public release. RustyUI is a clean, flat reskin of the default UI: near-black panels, borders one screen pixel thin, square icons and an accent color. It changes how Blizzard's own frames look, never replaces them, so frames keep their places and Edit Mode keeps working.

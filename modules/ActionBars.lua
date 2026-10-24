@@ -13,20 +13,21 @@ local _, ns = ...
 
 local RUI, UI, S = ns.RUI, ns.UI, ns.Skin
 
+-- Each bar's buttons by name, how many there are, and the binding command that presses them.
 local BARS = {
-    { "ActionButton", 12 },
-    { "MultiBarBottomLeftButton", 12 },
-    { "MultiBarBottomRightButton", 12 },
-    { "MultiBarRightButton", 12 },
-    { "MultiBarLeftButton", 12 },
-    { "MultiBar5Button", 12 },
-    { "MultiBar6Button", 12 },
-    { "MultiBar7Button", 12 },
-    { "PetActionButton", 10 },
-    { "StanceButton", 10 },
-    { "ShapeshiftButton", 10 },
+    { "ActionButton", 12, "ACTIONBUTTON" },
+    { "MultiBarBottomLeftButton", 12, "MULTIACTIONBAR1BUTTON" },
+    { "MultiBarBottomRightButton", 12, "MULTIACTIONBAR2BUTTON" },
+    { "MultiBarRightButton", 12, "MULTIACTIONBAR3BUTTON" },
+    { "MultiBarLeftButton", 12, "MULTIACTIONBAR4BUTTON" },
+    { "MultiBar5Button", 12, "MULTIACTIONBAR5BUTTON" },
+    { "MultiBar6Button", 12, "MULTIACTIONBAR6BUTTON" },
+    { "MultiBar7Button", 12, "MULTIACTIONBAR7BUTTON" },
+    { "PetActionButton", 10, "BONUSACTIONBUTTON" },
+    { "StanceButton", 10, "SHAPESHIFTBUTTON" },
+    { "ShapeshiftButton", 10, "SHAPESHIFTBUTTON" },
     { "PossessButton", 2 },
-    { "OverrideActionBarButton", 6 },
+    { "OverrideActionBarButton", 6, "ACTIONBUTTON" },
 }
 
 local ART = {
@@ -87,6 +88,90 @@ local function part(button, key, suffix)
     return button[key] or (name and _G[name .. suffix])
 end
 
+-- Keybindings -----------------------------------------------------------------------------------
+
+local MODIFIERS = { ALT = "a", CTRL = "c", SHIFT = "s", META = "m" }
+
+local KEYS = {
+    MOUSEWHEELUP = "WU", MOUSEWHEELDOWN = "WD",
+    NUMPADPLUS = "N+", NUMPADMINUS = "N-", NUMPADMULTIPLY = "N*", NUMPADDIVIDE = "N/",
+    NUMPADDECIMAL = "N.", NUMPADEQUALS = "N=", NUMLOCK = "NL",
+    SPACE = "Sp", BACKSPACE = "BS", TAB = "Tab", ENTER = "Ent", ESCAPE = "Esc", CAPSLOCK = "Cap",
+    INSERT = "Ins", DELETE = "Del", HOME = "Hm", END = "End", PAGEUP = "PU", PAGEDOWN = "PD",
+    UP = "Up", DOWN = "Dn", LEFT = "Lt", RIGHT = "Rt",
+    PRINTSCREEN = "PS", SCROLLLOCK = "SL", PAUSE = "Pau",
+}
+
+-- A key as bindings name it ("SHIFT-BUTTON4") written short ("sM4"): each modifier a lower-case
+-- letter ahead of the key, and long key names cut down. Nil for a gamepad button, whose text
+-- Blizzard draws as an icon, and for no key at all.
+function RUI:shortKey(key)
+    if (type(key) ~= "string" or key == "") then return nil end
+    if (IsBindingForGamePad and IsBindingForGamePad(key)) then return nil end
+
+    local modifiers, rest = "", key
+
+    while (true) do
+        local modifier, tail = rest:match("^(%u+)%-(.+)$")
+
+        if (not MODIFIERS[modifier]) then break end
+
+        modifiers, rest = modifiers .. MODIFIERS[modifier], tail
+    end
+
+    if (rest:find("^PAD")) then return nil end
+
+    local mouse, numpad = rest:match("^BUTTON(%d+)$"), rest:match("^NUMPAD(%d)$")
+
+    return modifiers .. (KEYS[rest] or (mouse and "M" .. mouse) or (numpad and "N" .. numpad) or rest)
+end
+
+local commands = {}     -- button -> its binding command, for buttons Blizzard does not note it on
+local bindingTexts = {} -- hotkey -> the text Blizzard last gave it
+local rewriting = false
+
+local function bindingKey(button)
+    local command = button.bindingAction or commands[button]
+    local key = command and GetBindingKey(command)
+    local name = button:GetName()
+
+    -- Bars from other addons can be bound by clicking the button itself.
+    if (not key and name) then key = GetBindingKey("CLICK " .. name .. ":LeftButton") end
+
+    return key
+end
+
+-- Blizzard writes the binding out in full and redraws it whenever bindings change; its text is
+-- kept, so turning short keys off can put it back.
+local function applyHotkeyText(button)
+    local hotkey = part(button, "HotKey", "HotKey")
+    local text = hotkey and bindingTexts[hotkey]
+
+    -- An unbound button shows the range dot instead, which stays as it is.
+    if (type(text) ~= "string" or text == "" or text == RANGE_INDICATOR) then return end
+
+    local wanted = (RUI.db.actionbars.shortKeys and RUI:shortKey(bindingKey(button))) or text
+
+    if (hotkey:GetText() ~= wanted) then
+        rewriting = true
+        hotkey:SetText(wanted)
+        rewriting = false
+    end
+end
+
+local function followHotkey(button, hotkey)
+    bindingTexts[hotkey] = hotkey:GetText()
+
+    hooksecurefunc(hotkey, "SetText", function(_, text)
+        if (rewriting) then return end
+
+        bindingTexts[hotkey] = text
+        applyHotkeyText(button)
+    end)
+
+    applyHotkeyText(button)
+end
+
 -- Only Retail bars that Edit Mode manages carry a system; those are laid out there, not here.
 function RUI:barsUseEditMode()
     return EditModeManagerFrame ~= nil and MultiBarBottomLeft ~= nil and MultiBarBottomLeft.system ~= nil
@@ -125,8 +210,69 @@ local function applyState(button)
     if (macro) then macro:SetAlpha(db.macroNames and 1 or 0) end
 end
 
+-- Range ------------------------------------------------------------------------------------------
+
+local WHITE = { 1, 1, 1 }
+local RANGE_COLOR = { UI:rgb("bad") }
+
+local outOfRange = {}  -- button -> true while its target is out of its spell's range
+local iconTints = {}   -- icon -> the tint Blizzard last gave it: blue without the power, grey unusable
+local tinting = false
+
+-- Blizzard only reddens the keybinding when a target is out of range; this reddens the whole icon,
+-- and gives Blizzard's own tint back once the target is in range again.
+local function applyTint(button)
+    local icon = part(button, "icon", "Icon")
+
+    if (not icon) then return end
+
+    local color = (RUI.db.actionbars.rangeTint and outOfRange[button]) and RANGE_COLOR or iconTints[icon] or WHITE
+
+    tinting = true
+    icon:SetVertexColor(color[1], color[2], color[3])
+    tinting = false
+end
+
+local function followTint(button, icon)
+    local current = { icon:GetVertexColor() }
+
+    if (type(current[1]) == "number") then iconTints[icon] = current end
+
+    hooksecurefunc(icon, "SetVertexColor", function(_, r, g, b)
+        if (tinting) then return end
+
+        iconTints[icon] = { r, g, b }
+
+        if (RUI.db.actionbars.rangeTint and outOfRange[button]) then applyTint(button) end
+    end)
+end
+
+-- In Midnight combat the range can be a secret value, which errors when tested; the icon then
+-- keeps Blizzard's tint.
+local function followRange(button, checksRange, inRange)
+    if (not looks[button]) then return end
+
+    local ok, out = pcall(function() return (checksRange and not inRange) and true or false end)
+
+    out = ok and out
+
+    if ((outOfRange[button] or false) == out) then return end
+
+    outOfRange[button] = out or nil
+    applyTint(button)
+end
+
 local function refreshStates()
     for _, button in ipairs(buttons) do applyState(button) end
+end
+
+-- Only the buttons out of range look any different with the tint on or off.
+local function refreshTints()
+    for button in pairs(outOfRange) do applyTint(button) end
+end
+
+local function refreshHotkeys()
+    for _, button in ipairs(buttons) do applyHotkeyText(button) end
 end
 
 local function skinButton(button)
@@ -145,6 +291,8 @@ local function skinButton(button)
         hooksecurefunc(icon, "Show", follow)
         hooksecurefunc(icon, "Hide", follow)
         hooksecurefunc(icon, "SetTexture", follow)
+
+        followTint(button, icon)
     end
 
     looks[button] = S:iconBackdrop(button, button)
@@ -157,6 +305,7 @@ local function skinButton(button)
         S:font(hotkey, 11, true, UI.fontNumber)
         hotkey:ClearAllPoints()
         hotkey:SetPoint("TOPRIGHT", -2, -3)
+        followHotkey(button, hotkey)
     end
 
     S:font(part(button, "Count", "Count"), 13, true, UI.fontNumber)
@@ -172,10 +321,14 @@ end
 
 local function skinAll()
     for _, bar in ipairs(BARS) do
-        local prefix, count = bar[1], bar[2]
+        local prefix, count, command = bar[1], bar[2], bar[3]
 
         for i = 1, count do
-            skinButton(_G[prefix .. i])
+            local button = _G[prefix .. i]
+
+            if (button and command) then commands[button] = command .. i end
+
+            skinButton(button)
         end
     end
 end
@@ -315,6 +468,11 @@ RUI:registerModule("actionbars", "Action bars", function()
         end
     end
 
+    -- Action and pet buttons on every client report their range through this one function.
+    if (type(ActionButton_UpdateRangeIndicator) == "function") then
+        hooksecurefunc("ActionButton_UpdateRangeIndicator", followRange)
+    end
+
     if (not RUI:barsUseEditMode()) then
         for _, name in ipairs(STACKED) do
             local frame = _G[name]
@@ -351,5 +509,7 @@ RUI:registerModule("actionbars", "Action bars", function()
     end)
 end, function()
     refreshStates()
+    refreshHotkeys()
+    refreshTints()
     applyLayout()
 end)

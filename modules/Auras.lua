@@ -6,12 +6,51 @@ See License file for details.
 --]]
 
 -- Square buff and debuff icons. A debuff's border keeps the color Blizzard gives it for its type.
+-- Timers are written short, and turn red in their last seconds.
 
 local _, ns = ...
 
 local RUI, UI, S = ns.RUI, ns.UI, ns.Skin
 
 local ENCHANT = { 0.62, 0.35, 0.86 }
+
+local EXPIRING = 5 -- seconds left when a timer turns red
+
+local skinned = setmetatable({}, { __mode = "k" }) -- the aura buttons skinned here, as a set
+
+-- Blizzard's own unit letters ("%d m"), in the client's language, with the space taken out.
+local function unit(format, fallback)
+    if (type(format) ~= "string") then return fallback end
+
+    return (format:gsub("%s", ""):gsub("\194\160", ""))
+end
+
+local DAYS = unit(DAY_ONELETTER_ABBR, "%dd")
+local HOURS = unit(HOUR_ONELETTER_ABBR, "%dh")
+local MINUTES = unit(MINUTE_ONELETTER_ABBR, "%dm")
+
+-- The time left as "2d", "3h", "12m" or "45": Blizzard's own steps, without the space or the seconds'
+-- unit, so a timer fits under its icon.
+function RUI:shortDuration(seconds)
+    if (seconds >= 86400 * 1.5) then return DAYS:format(math.ceil(seconds / 86400)) end
+    if (seconds >= 3600 * 1.5) then return HOURS:format(math.ceil(seconds / 3600)) end
+    if (seconds >= 60 * 1.5) then return MINUTES:format(math.ceil(seconds / 60)) end
+
+    return ("%d"):format(math.max(math.floor(seconds), 0))
+end
+
+-- Blizzard writes the timer again every frame; this runs after each time. A secret time left, as in
+-- Midnight combat, keeps Blizzard's text.
+local function followTimer(button, timeLeft)
+    local duration = button.Duration or (button.GetName and button:GetName() and _G[button:GetName() .. "Duration"])
+
+    if (not duration or button.isExample or type(timeLeft) ~= "number" or S:isSecret(timeLeft)) then return end
+
+    local db = RUI.db.auras
+
+    if (db.shortTimers) then duration:SetText(RUI:shortDuration(timeLeft)) end
+    if (db.expiringRed and timeLeft < EXPIRING) then duration:SetVertexColor(UI:rgb("bad")) end
+end
 
 -- Retail marks debuff types with an atlas rather than a color; its name says which type.
 local function typeColor(atlas)
@@ -60,6 +99,11 @@ local function skinAura(button, harmful)
 
     S:font(button.Count or (name and _G[name .. "Count"]), 12, true, UI.fontNumber)
     S:font(button.Duration or (name and _G[name .. "Duration"]), 10, true)
+
+    -- Retail's buttons write their own timer; Forever's are written by AuraButton_UpdateDuration.
+    skinned[button] = true
+
+    if (type(button.UpdateDuration) == "function") then hooksecurefunc(button, "UpdateDuration", followTimer) end
 
     local enchant = button.TempEnchantBorder or (name and name:find("^TempEnchant") and _G[name .. "Border"])
 
@@ -115,6 +159,12 @@ RUI:registerModule("auras", "Buffs and debuffs", function()
         end
 
         skinAuraFrame(frame)
+    end
+
+    if (type(AuraButton_UpdateDuration) == "function") then
+        hooksecurefunc("AuraButton_UpdateDuration", function(button, timeLeft)
+            if (skinned[button]) then followTimer(button, timeLeft) end
+        end)
     end
 
     if (type(AuraButton_Update) == "function") then

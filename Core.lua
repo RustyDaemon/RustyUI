@@ -41,14 +41,17 @@ local defaults = {
         talents = true,
     },
     -- spacing is unset by default: Blizzard's own gaps between buttons stand until it is changed.
-    actionbars = { hotkeys = true, macroNames = false, emptySlots = false, barGap = 0 },
+    actionbars = {
+        hotkeys = true, shortKeys = true, macroNames = false, emptySlots = false, rangeTint = true, barGap = 0,
+    },
     minimap = { style = "square", dayNight = true },
     -- heights holds only the styles whose height was changed; the rest use their own default.
     xpbar = { style = "slim", heights = {} },
     castbars = { style = "slim" },
     unitframes = { classColors = true },
+    auras = { shortTimers = true, expiringRed = true },
     bags = { qualityBorders = true },
-    tooltips = { qualityBorders = true },
+    tooltips = { qualityBorders = true, unitBorders = true, healthColors = true },
     ui = {},
 }
 

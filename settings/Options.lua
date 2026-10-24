@@ -43,11 +43,17 @@ local function moduleOff(key)
 end
 
 local hotkeysGet, hotkeysSet = setting("actionbars", "hotkeys", "actionbars")
+local shortGet, shortSet = setting("actionbars", "shortKeys", "actionbars")
 local macroGet, macroSet = setting("actionbars", "macroNames", "actionbars")
 local emptyGet, emptySet = setting("actionbars", "emptySlots", "actionbars")
+local rangeGet, rangeSet = setting("actionbars", "rangeTint", "actionbars")
+local timersGet, timersSet = setting("auras", "shortTimers", "auras")
+local expiringGet, expiringSet = setting("auras", "expiringRed", "auras")
 local classGet, classSet = setting("unitframes", "classColors", "unitframes")
 local bagQualityGet, bagQualitySet = setting("bags", "qualityBorders", "bags")
 local tipQualityGet, tipQualitySet = setting("tooltips", "qualityBorders", "tooltips")
+local tipUnitGet, tipUnitSet = setting("tooltips", "unitBorders", "tooltips")
+local tipHealthGet, tipHealthSet = setting("tooltips", "healthColors", "tooltips")
 
 -- Each XP bar look keeps a height of its own; only the selected look's slider shows.
 local function xpHeight(style, order)
@@ -187,6 +193,15 @@ local options = {
                     desc = "The key bound to each button, in its top right corner",
                     get = hotkeysGet, set = hotkeysSet, disabled = moduleOff("actionbars"),
                 },
+                shortKeys = {
+                    type = "toggle", order = 1.5, name = "Short keybindings",
+                    desc = "Keys written short: s1 for Shift-1, cQ for Ctrl-Q, M4 for mouse button 4 "
+                        .. "and N5 for numpad 5",
+                    get = shortGet, set = shortSet,
+                    disabled = function()
+                        return not RUI:isEnabled("actionbars") or not RUI.db.actionbars.hotkeys
+                    end,
+                },
                 macroNames = {
                     type = "toggle", order = 2, name = "Show macro names",
                     desc = "The name of a macro along the bottom of its button",
@@ -197,6 +212,12 @@ local options = {
                     desc = "Buttons with nothing on them keep their slot. Without this, empty slots "
                         .. "show only while a spell or item is being dragged.",
                     get = emptyGet, set = emptySet, disabled = moduleOff("actionbars"),
+                },
+                rangeTint = {
+                    type = "toggle", order = 4, name = "Red when out of range",
+                    desc = "A button turns red while your target is out of its spell's range. Blizzard "
+                        .. "already turns it blue when you lack the power to cast it.",
+                    get = rangeGet, set = rangeSet, disabled = moduleOff("actionbars"),
                 },
                 spacingHeader = { type = "header", order = 10, name = "Spacing" },
                 editModeNote = {
@@ -372,6 +393,23 @@ local options = {
                 },
             },
         },
+        auras = {
+            type = "group",
+            order = 115,
+            name = "Buffs and debuffs",
+            args = {
+                shortTimers = {
+                    type = "toggle", order = 1, name = "Short timers",
+                    desc = "Time left written 12m, 3h and 45 instead of Blizzard's 12 m, 3 h and 45 s",
+                    get = timersGet, set = timersSet, disabled = moduleOff("auras"),
+                },
+                expiringRed = {
+                    type = "toggle", order = 2, name = "Expiring in red",
+                    desc = "A timer turns red in its last 5 seconds, so a buff about to drop stands out",
+                    get = expiringGet, set = expiringSet, disabled = moduleOff("auras"),
+                },
+            },
+        },
         bags = {
             type = "group",
             order = 120,
@@ -393,6 +431,17 @@ local options = {
                     type = "toggle", order = 1, name = "Quality borders",
                     desc = "Item tooltips bordered in the item's quality color",
                     get = tipQualityGet, set = tipQualitySet, disabled = moduleOff("tooltips"),
+                },
+                unitBorders = {
+                    type = "toggle", order = 2, name = "Unit borders",
+                    desc = "Tooltips of players bordered in their class color, everyone else's by reaction",
+                    get = tipUnitGet, set = tipUnitSet, disabled = moduleOff("tooltips"),
+                },
+                healthColors = {
+                    type = "toggle", order = 3, name = "Colored health bar",
+                    desc = "The health bar under a unit's tooltip in its class or reaction color, instead "
+                        .. "of green to red by health",
+                    get = tipHealthGet, set = tipHealthSet, disabled = moduleOff("tooltips"),
                 },
             },
         },

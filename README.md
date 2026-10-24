@@ -20,15 +20,15 @@ Works on Retail and WoW Forever, from the same download.
 
 ## What it skins
 
-- **Action bars**: square, bordered buttons with flat press and highlight states, and no bar art. Keybindings and macro names can be shown or hidden. Empty slots stay hidden until a spell is being dragged, unless you choose to show them. On WoW Forever, button spacing and the gap between bars can be set; on Retail, Edit Mode handles both.
+- **Action bars**: square, bordered buttons with flat press and highlight states, and no bar art. Keybindings and macro names can be shown or hidden, and keybindings are written short: `sM4` for Shift-Mouse Button 4, `cN5` for Ctrl-Numpad 5. A button turns red while your target is out of its range. Empty slots stay hidden until a spell is being dragged, unless you choose to show them. On WoW Forever, button spacing and the gap between bars can be set; on Retail, Edit Mode handles both.
 - **Menu and bags**: the micro menu as kit tiles with their own icons and a pulsing accent dot when Blizzard flags one, and the bag bar as square slots, each on a kit panel. The queue eye sits in a kit slot.
 - **XP bar**: RustyUI's own experience bar in place of Blizzard's, in four styles switched live: Slim, Segmented, Panel (level, bar and numbers always shown) and Screen edge (a glowing line along the bottom of the screen). Rested experience shows as a soft extension of the fill. At the level cap it shows the watched reputation instead.
 - **Bags**: kit-style bag windows, with slots bordered in the item's quality color.
 - **Unit frames**: player, target, focus, target of target, pet, party and boss frames with flat health and power bars. Health is class-colored for players and reaction-colored otherwise, and the empty part of the bar is a dim shade of that color. On Retail, portraits are square and elites get an accent border.
 - **Minimap**: five styles, switched live: Square, Rounded, Round (with an accent ring), Hexagon, and Window (the map in a kit window, with the zone above and coordinates and time below). The day/night indicator can be hidden, and an edge distance slider pulls the zone, clock, coordinates and minimap buttons closer to the map or pushes them out.
-- **Tooltips**: flat panels bordered in the item's quality color.
+- **Tooltips**: flat panels bordered in the item's quality color. A player's tooltip is bordered in their class color and anyone else's by reaction, and the health bar under it takes the same color.
 - **Cast bars**: four styles, switched live: Slim, Framed (in a kit window with the spell name in a title bar), Thick (name and time on the bar, icon fused to its end) and Minimal (a thin line with the name above). Colored by cast type; the player's bar marks latency at its end.
-- **Buffs and debuffs**: square icons, with debuff borders in their type color.
+- **Buffs and debuffs**: square icons, with debuff borders in their type color. Timers are written short (`12m`, `3h`, `45`) and turn red in their last 5 seconds.
 - **Objective tracker**: headers as kit headings over an accent rule, and quest item buttons as square slots.
 - **Popups and game menu**: confirmation popups and the Escape menu as kit windows with an accent stripe and kit buttons.
 - **Timers and extra button**: flat breath, fatigue and countdown bars; the extra action and zone ability buttons as square slots without their ornate frames.

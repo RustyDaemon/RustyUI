@@ -114,23 +114,7 @@ end
 
 -- Unit data can be a secret value in Midnight combat; anything that cannot be read falls back.
 local function healthColor(bar)
-    local unit = unitOf(bar)
-
-    if (not unit or not UnitExists(unit)) then return nil end
-
-    if (RUI.db.unitframes.classColors and UnitIsPlayer(unit)) then
-        local _, class = UnitClass(unit)
-        local color = class and (CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS)[class]
-
-        if (color) then return color.r, color.g, color.b end
-    end
-
-    if (UnitIsTapDenied and UnitIsTapDenied(unit)) then return 0.5, 0.5, 0.5 end
-
-    local reaction = UnitReaction(unit, "player")
-    local color = reaction and FACTION_BAR_COLORS and FACTION_BAR_COLORS[reaction]
-
-    if (color) then return color.r, color.g, color.b end
+    return S:unitColor(unitOf(bar), RUI.db.unitframes.classColors)
 end
 
 local function paintHealth(bar)

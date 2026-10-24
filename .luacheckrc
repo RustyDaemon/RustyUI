@@ -45,15 +45,17 @@ read_globals = {
     "StaticPopup_Show", "EditModeManagerFrame",
 
     -- the frames the modules skin
-    "ActionButton1", "ActionButton12", "MultiBarBottomLeft", "ExtraActionButton1", "ZoneAbilityFrame",
+    "ActionButton1", "ActionButton12", "ActionButton_UpdateRangeIndicator", "MultiBarBottomLeft",
+    "ExtraActionButton1", "ZoneAbilityFrame",
     "CharacterMicroButton", "MainMenuBarBackpackButton", "MICRO_BUTTONS", "MicroButtonPulse",
     "MicroButtonPulseStop",
     "BagItemSearchBox", "ContainerFrameCombinedBags", "ContainerFrame_Update", "NUM_CONTAINER_FRAMES",
     "PlayerFrame",
     "Minimap", "MinimapCluster", "MiniMapTracking", "MinimapZoneText", "MinimapZoneTextButton",
     "GameTimeFrame", "TimeManagerClockButton", "HybridMinimap",
-    "BuffFrame", "DebuffFrame", "AuraButton_Update", "BUFF_MAX_DISPLAY", "DEBUFF_MAX_DISPLAY",
-    "DebuffTypeColor",
+    "BuffFrame", "DebuffFrame", "AuraButton_Update", "AuraButton_UpdateDuration", "BUFF_MAX_DISPLAY",
+    "DEBUFF_MAX_DISPLAY", "DebuffTypeColor",
+    "DAY_ONELETTER_ABBR", "HOUR_ONELETTER_ABBR", "MINUTE_ONELETTER_ABBR",
     "CHAT_FRAMES", "GENERAL_CHAT_DOCK", "FCF_OpenTemporaryWindow", "FCFDock_GetSelectedWindow",
     "FCFDock_SelectWindow",
     "ObjectiveTrackerFrame",
@@ -66,6 +68,9 @@ read_globals = {
     "GetXPExhaustion", "IsXPUserDisabled", "GetMaxLevelForPlayerExpansion", "GetMaxPlayerLevel",
     "MAX_PLAYER_LEVEL", "GetWatchedFactionInfo", "SetPortraitTexture",
     "CUSTOM_CLASS_COLORS", "RAID_CLASS_COLORS", "FACTION_BAR_COLORS", "PowerBarColor", "ITEM_QUALITY_COLORS",
+
+    -- keybindings, for the action bars' short keys
+    "GetBindingKey", "IsBindingForGamePad", "RANGE_INDICATOR",
 
     -- the minimap's zone, clock and coordinates
     "GetMinimapZoneText", "GetZonePVPInfo", "GetGameTime", "GetNetStats",
@@ -92,7 +97,10 @@ read_globals = {
 files["tests/**/*.lua"] = {
     std = "max+busted",
     read_globals = { "UIParent", "RustyUISettingsFrame" },
-    globals = { "print" },              -- settings_spec catches what RUI:safe reports
+    globals = {
+        "print",                        -- settings_spec catches what RUI:safe reports
+        "GameTooltip",                  -- modules_spec gives it a unit to show
+    },
 }
 
 -- The stubs build the fake client, so they write the globals the addon only reads.

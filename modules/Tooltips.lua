@@ -5,7 +5,8 @@ Copyright (C) 2026 RustyDaemon (https://github.com/RustyDaemon)
 See License file for details.
 --]]
 
--- Tooltips as kit panels, with the border in the item's quality color.
+-- Tooltips as kit panels, with the border in the item's quality color, or for a unit in its class
+-- or reaction color, which the health bar under it takes too.
 
 local _, ns = ...
 
@@ -24,6 +25,7 @@ local TOOLTIPS = {
 }
 
 local looks = setmetatable({}, { __mode = "k" })
+local unitColors = setmetatable({}, { __mode = "k" }) -- tooltip -> the color of the unit it shows
 
 local function itemQuality(tooltip)
     local _, link = tooltip:GetItem()
@@ -61,8 +63,50 @@ local function paintBorder(tooltip)
     end
 end
 
+-- The health bar under GameTooltip's text. Blizzard colors it green to red by health on every
+-- change; this runs after each, and paints over it while a unit color is wanted.
+local function paintHealth(bar)
+    local color = RUI.db.tooltips.healthColors and unitColors[GameTooltip]
+
+    if (color) then
+        S:paintBar(bar, color[1], color[2], color[3])
+        S:paintTrack(bar, color[1], color[2], color[3])
+    else
+        S:paintTrack(bar)
+    end
+end
+
+local function unitColor(tooltip)
+    local _, unit = tooltip:GetUnit()
+
+    return S:unitColor(unit, true)
+end
+
+local function paintUnit(tooltip)
+    local look = looks[tooltip]
+
+    if (not look) then return end
+
+    -- In Midnight combat the unit can be a secret value; the border and bar then stay plain.
+    local ok, r, g, b = pcall(unitColor, tooltip)
+
+    if (not ok or S:isSecret(r)) then r = nil end
+
+    unitColors[tooltip] = r and { r, g, b } or nil
+
+    if (r and RUI.db.tooltips.unitBorders) then
+        look:SetBorderColor(r, g, b)
+    else
+        look:SetBorderColor(UI:rgb("borderLight"))
+    end
+
+    if (tooltip == GameTooltip and GameTooltipStatusBar) then paintHealth(GameTooltipStatusBar) end
+end
+
 local function resetBorder(tooltip)
     local look = looks[tooltip]
+
+    unitColors[tooltip] = nil
 
     if (look) then look:SetBorderColor(UI:rgb("borderLight")) end
 end
@@ -83,9 +127,10 @@ local function skinTooltip(tooltip)
 
     if (tooltip:HasScript("OnTooltipCleared")) then tooltip:HookScript("OnTooltipCleared", resetBorder) end
 
-    -- Without the newer tooltip data hooks, items announce themselves through this script.
-    if (not TooltipDataProcessor and tooltip:HasScript("OnTooltipSetItem")) then
-        tooltip:HookScript("OnTooltipSetItem", paintBorder)
+    -- Without the newer tooltip data hooks, items and units announce themselves through these scripts.
+    if (not TooltipDataProcessor) then
+        if (tooltip:HasScript("OnTooltipSetItem")) then tooltip:HookScript("OnTooltipSetItem", paintBorder) end
+        if (tooltip:HasScript("OnTooltipSetUnit")) then tooltip:HookScript("OnTooltipSetUnit", paintUnit) end
     end
 end
 
@@ -99,12 +144,17 @@ RUI:registerModule("tooltips", "Tooltips", function()
             skinTooltip(tooltip)
             paintBorder(tooltip)
         end)
+
+        TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tooltip)
+            skinTooltip(tooltip)
+            paintUnit(tooltip)
+        end)
     end
 
     local health = GameTooltipStatusBar
 
     if (health) then
-        S:flatBar(health)
+        S:flatBar(health, paintHealth)
         S:barBackdrop(health)
         health:SetHeight(4)
     end
