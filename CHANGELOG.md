@@ -1,4 +1,4 @@
-## Unreleased
+## 0.5.4
 
 - Updated for Retail 12.1.5.
 - Action bars: short keybindings (`sM4`, `cQ`, `N5`), and buttons turn red when out of range.
