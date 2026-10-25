@@ -1,3 +1,8 @@
+## 0.6.1
+
+- With **Font** set to Rusty Pixel, text now falls back to the game's font if the pixel font can't be loaded, instead of disappearing.
+- After updating, restart the game rather than reloading the UI: the pixel font has moved, and the game only finds new files when it starts.
+
 ## 0.6.0
 
 - Raid frames: Blizzard's raid frames, and raid-style party frames, with flat health and power bars and 1px borders. The empty part of the health bar is a dim shade of its color, and aggro and your target show as 1px borders.
