@@ -52,9 +52,67 @@ function S:hideNormalTexture(button)
     end
 end
 
+local qualities = setmetatable({}, { __mode = "k" }) -- item button -> what its quality border follows
+
+-- Common and poor items keep the plain border, as in the bags: only uncommon and better stand out.
+local function plainQuality(r, g, b)
+    local colors = ITEM_QUALITY_COLORS
+
+    for quality = 0, 1 do
+        local color = colors and colors[quality]
+        local near = color and math.abs(color.r - r) < 0.02 and math.abs(color.g - g) < 0.02
+            and math.abs(color.b - b) < 0.02
+
+        if (near) then return true end
+    end
+
+    return false
+end
+
+local function paintQuality(state)
+    local r, g, b = state.r, state.g, state.b
+
+    if (state.wanted() and state.border:IsShown() and type(r) == "number" and not plainQuality(r, g, b)) then
+        state.look:SetBorderColor(r, g, b)
+    else
+        state.look:SetBorderColor(UI:rgb("border"))
+    end
+end
+
+-- Blizzard shows an item's quality by tinting the button's IconBorder and showing or hiding it. That
+-- art stays invisible here, and its color goes to the slot's 1px border instead, while wanted() says so.
+function S:qualityBorder(button, look, wanted)
+    local border = button and button.IconBorder
+
+    if (not border or not look or not S:once(button, "quality")) then return end
+
+    local state = { border = border, look = look, wanted = wanted }
+
+    qualities[button] = state
+    border:SetAlpha(0)
+
+    hooksecurefunc(border, "SetVertexColor", function(_, r, g, b)
+        state.r, state.g, state.b = r, g, b
+        paintQuality(state)
+    end)
+
+    for _, method in ipairs({ "Show", "Hide", "SetShown" }) do
+        hooksecurefunc(border, method, function() paintQuality(state) end)
+    end
+
+    state.r, state.g, state.b = border:GetVertexColor()
+    paintQuality(state)
+end
+
+-- Paints every quality border again, after an option that turns them on or off has changed.
+function S:repaintQualities()
+    for _, state in pairs(qualities) do paintQuality(state) end
+end
+
 -- An item button (a bag slot, a bag in the bag bar) as a square, bordered slot. Returns the slot's
--- backdrop, whose border can be painted in the item's quality color.
-function S:itemSlot(button)
+-- backdrop, whose border can be painted in the item's quality color. With wanted, the border follows
+-- the quality Blizzard paints on the button, while wanted() is true.
+function S:itemSlot(button, wanted)
     if (not button or not S:once(button, "itemslot")) then return nil end
 
     local name = button:GetName()
@@ -64,13 +122,59 @@ function S:itemSlot(button)
     S:cropIcon(icon)
     S:hideNormalTexture(button)
     S:buttonStates(button)
-    S:kill(button.IconBorder)
     S:kill(button.ItemSlotBackground)
     S:kill(button.CircleMask)
 
+    if (not wanted) then S:kill(button.IconBorder) end
+
     S:font(button.Count or (name and _G[name .. "Count"]), 12, true, UI.fontNumber)
 
-    return S:iconBackdrop(button, button, false)
+    local look = S:iconBackdrop(button, button, false)
+
+    if (wanted) then S:qualityBorder(button, look, wanted) end
+
+    return look
+end
+
+-- A large side tab, an icon standing for a page, as a square slot: the selected one tinted in the
+-- accent, the rest dimmed. keepCoords leaves an icon Blizzard cuts from a sheet of several alone.
+function S:sideTab(tab, keepCoords)
+    local icon = tab and tab.Icon
+
+    if (not icon or not S:once(tab, "sidetab")) then return end
+
+    S:unmask(icon)
+
+    if (not keepCoords) then S:cropIcon(icon) end
+    S:kill(tab.Background)
+    S:kill(tab.TabBg)
+
+    S:iconBackdrop(tab, icon)
+
+    for _, key in ipairs({ "Highlight", "HighlightTexture" }) do
+        local highlight = tab[key]
+
+        if (highlight) then
+            highlight:SetColorTexture(1, 1, 1, 0.15)
+            highlight:SetAllPoints(icon)
+        end
+    end
+
+    if (tab.SelectedTexture) then
+        tab.SelectedTexture:SetColorTexture(UI:rgb("accent", 0.3))
+        tab.SelectedTexture:SetAllPoints(icon)
+    end
+
+    if (tab.TabGlow) then
+        tab.TabGlow:SetColorTexture(UI:rgb("accent", 0.4))
+        tab.TabGlow:SetAllPoints(icon)
+    end
+
+    -- Blizzard lays this over every tab but the selected one.
+    if (tab.Hider) then
+        tab.Hider:SetColorTexture(0, 0, 0, 0.55)
+        tab.Hider:SetAllPoints(icon)
+    end
 end
 
 -- Blizzard's red panel button (popups, the game menu) as a kit button: raised fill, 1px border and a
@@ -220,19 +324,27 @@ function S:editBox(editBox, insets)
     return look
 end
 
--- A portrait-and-title Blizzard window (bags, mostly) with the kit's window look.
-function S:window(frame, insets)
-    if (not frame or not S:once(frame, "window")) then return end
+-- Strips an inset panel: the darker box Blizzard draws inside a window around a list or a page.
+function S:inset(frame)
+    if (not frame or not S:once(frame, "inset")) then return end
 
     S:stripTextures(frame)
     S:kill(frame.NineSlice)
     S:kill(frame.Bg)
-    S:kill(frame.TopTileStreaks)
+end
 
-    if (frame.Inset) then
-        S:stripTextures(frame.Inset)
-        S:kill(frame.Inset.NineSlice)
+-- A portrait-and-title Blizzard window (bags, mostly) with the kit's window look. keep, a set of the
+-- frame's own textures, spares those that are its content, such as a page of parchment.
+function S:window(frame, insets, keep)
+    if (not frame or not S:once(frame, "window")) then return end
+
+    S:stripTextures(frame, keep)
+
+    for _, key in ipairs({ "NineSlice", "Bg", "TopTileStreaks" }) do
+        if (not (keep and frame[key] and keep[frame[key]])) then S:kill(frame[key]) end
     end
+
+    S:inset(frame.Inset)
 
     local name = frame:GetName()
 

@@ -71,6 +71,9 @@ local function paint(bar)
     S:paintBar(bar, UI:rgb(STATE_COLORS[state] or "accent"))
 end
 
+-- Nameplate cast bars take the same colors.
+RUI.paintCast = paint
+
 local function part(bar, key, suffix)
     local name = bar:GetName()
 

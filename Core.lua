@@ -31,6 +31,8 @@ local defaults = {
         xpbar = true,
         bags = true,
         unitframes = true,
+        raidframes = true,
+        nameplates = true,
         minimap = true,
         tooltips = true,
         castbars = true,
@@ -40,6 +42,8 @@ local defaults = {
         popups = true,
         timers = true,
         talents = true,
+        character = true,
+        npc = true,
     },
     -- spacing is unset by default: Blizzard's own gaps between buttons stand until it is changed.
     actionbars = {
@@ -47,12 +51,16 @@ local defaults = {
     },
     minimap = { style = "square", dayNight = true },
     -- heights holds only the styles whose height was changed; the rest use their own default.
-    xpbar = { style = "slim", heights = {} },
+    -- atMax: "reputation" shows the watched faction at the level cap, "hide" hides the bar there.
+    xpbar = { style = "slim", heights = {}, atMax = "reputation" },
     castbars = { style = "slim" },
+    nameplates = { style = "slim", friendlyNames = false },
     unitframes = { classColors = true },
     auras = { shortTimers = true, expiringRed = true },
     bags = { qualityBorders = true },
     tooltips = { qualityBorders = true, unitBorders = true, healthColors = true },
+    character = { qualityBorders = true },
+    npc = { qualityBorders = true },
     ui = {},
 }
 

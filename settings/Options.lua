@@ -54,6 +54,9 @@ local bagQualityGet, bagQualitySet = setting("bags", "qualityBorders", "bags")
 local tipQualityGet, tipQualitySet = setting("tooltips", "qualityBorders", "tooltips")
 local tipUnitGet, tipUnitSet = setting("tooltips", "unitBorders", "tooltips")
 local tipHealthGet, tipHealthSet = setting("tooltips", "healthColors", "tooltips")
+local plateNamesGet, plateNamesSet = setting("nameplates", "friendlyNames", "nameplates")
+local charQualityGet, charQualitySet = setting("character", "qualityBorders", "character")
+local npcQualityGet, npcQualitySet = setting("npc", "qualityBorders", "npc")
 
 -- Each XP bar look keeps a height of its own; only the selected look's slider shows.
 local function xpHeight(style, order)
@@ -149,6 +152,10 @@ local options = {
         bagsModule = moduleToggle("bags", "Bags", "Bag windows and slots", 13),
         unitframesModule = moduleToggle("unitframes", "Unit frames",
             "Player, target, focus, pet, party and boss frames", 14),
+        raidframesModule = moduleToggle("raidframes", "Raid frames",
+            "Raid frames, and raid-style party frames, with flat bars and 1px borders", 14.5),
+        nameplatesModule = moduleToggle("nameplates", "Nameplates",
+            "Flat health and cast bars with 1px borders; your target outlined", 14.6),
         minimapModule = moduleToggle("minimap", "Minimap", "A square minimap with a thin border", 15),
         tooltipsModule = moduleToggle("tooltips", "Tooltips", "Flat tooltips with quality-colored borders", 16),
         castbarsModule = moduleToggle("castbars", "Cast bars", "Flat cast bars, colored by cast type", 17),
@@ -162,6 +169,10 @@ local options = {
             "Flat breath, fatigue and countdown bars; square extra action and zone ability buttons", 22),
         talentsModule = moduleToggle("talents", "Talents window",
             "The talents window and its tabs; square talents bordered in their state color", 23),
+        characterModule = moduleToggle("character", "Character window",
+            "The character window, its tabs and stats; gear as square slots", 23.5),
+        npcModule = moduleToggle("npc", "Quest, gossip, merchant and mail",
+            "The windows NPCs open as kit windows, with items as square slots", 24),
         websiteHeader = { type = "header", order = 25, name = "Website" },
         website = {
             type = "input",
@@ -363,6 +374,20 @@ local options = {
                     end,
                     disabled = moduleOff("xpbar"),
                 },
+                atMax = {
+                    type = "select", order = 5, name = "At max level",
+                    desc = "Show the reputation you are watching once there is no more experience to "
+                        .. "earn, renown and paragon included, or hide the bar. With no faction watched it "
+                        .. "hides either way.",
+                    values = { reputation = "Show reputation", hide = "Hide" },
+                    sorting = { "reputation", "hide" },
+                    get = function() return RUI.db.xpbar.atMax end,
+                    set = function(_, value)
+                        RUI.db.xpbar.atMax = value
+                        RUI:refresh("xpbar")
+                    end,
+                    disabled = moduleOff("xpbar"),
+                },
             },
         },
         castbars = {
@@ -387,6 +412,38 @@ local options = {
                     name = "Click a style to switch to it; it changes right away. Framed, Thick and "
                         .. "Minimal show the time left; the player's bar marks your latency at its end, "
                         .. "where a spell can already be queued.",
+                },
+            },
+        },
+        nameplates = {
+            type = "group",
+            order = 109,
+            name = "Nameplates",
+            args = {
+                style = {
+                    type = "previews", order = 1, name = "Style", columns = 4, cardHeight = 72,
+                    items = function() return RUI.nameplateStyles end,
+                    draw = function(holder, value) RUI:drawNameplatePreview(holder, value) end,
+                    get = function() return RUI.db.nameplates.style end,
+                    set = function(_, value)
+                        RUI.db.nameplates.style = value
+                        RUI:refresh("nameplates")
+                    end,
+                    disabled = moduleOff("nameplates"),
+                },
+                styleNote = {
+                    type = "description",
+                    order = 2,
+                    name = "Click a style to switch to it; it changes right away. Bar heights follow "
+                        .. "Blizzard's nameplate size, so Thick and Minimal stay in step with it. Your "
+                        .. "target is outlined, or on Framed, the window's border takes its color.",
+                },
+                friendlyNames = {
+                    type = "toggle", order = 3, name = "Friendly NPCs: names only",
+                    desc = "Friendly NPCs and pets show their name without a health or "
+                        .. "cast bar. Enemies and players keep theirs. Friendly nameplates in dungeons and "
+                        .. "raids are closed to addons and keep Blizzard's look.",
+                    get = plateNamesGet, set = plateNamesSet, disabled = moduleOff("nameplates"),
                 },
             },
         },
@@ -451,6 +508,31 @@ local options = {
                     desc = "The health bar under a unit's tooltip in its class or reaction color, instead "
                         .. "of green to red by health",
                     get = tipHealthGet, set = tipHealthSet, disabled = moduleOff("tooltips"),
+                },
+            },
+        },
+        character = {
+            type = "group",
+            order = 140,
+            name = "Character window",
+            args = {
+                qualityBorders = {
+                    type = "toggle", order = 1, name = "Quality borders",
+                    desc = "Gear of uncommon and better quality bordered in the item's quality color",
+                    get = charQualityGet, set = charQualitySet, disabled = moduleOff("character"),
+                },
+            },
+        },
+        npc = {
+            type = "group",
+            order = 150,
+            name = "NPC windows",
+            args = {
+                qualityBorders = {
+                    type = "toggle", order = 1, name = "Quality borders",
+                    desc = "Merchant goods, quest rewards and mail attachments of uncommon and better "
+                        .. "quality bordered in the item's quality color",
+                    get = npcQualityGet, set = npcQualitySet, disabled = moduleOff("npc"),
                 },
             },
         },

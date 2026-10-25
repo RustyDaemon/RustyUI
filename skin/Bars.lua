@@ -136,6 +136,18 @@ function S:paintTrack(bar, r, g, b)
     end
 end
 
+-- Tints a track from the color its fill already has, for bars Blizzard colors itself. A color
+-- handed over as a secret cannot be read, and the track stays its plain dark then.
+function S:matchTrack(bar)
+    local r, g, b = bar:GetStatusBarColor()
+
+    if (type(r) ~= "number" or S:isSecret(r) or S:isSecret(g) or S:isSecret(b)) then
+        S:paintTrack(bar)
+    else
+        S:paintTrack(bar, r, g, b)
+    end
+end
+
 -- A unit's color: a player's class color when classColors is on, grey for a mob someone else has
 -- tapped, and the reaction color otherwise. Nil when there is no unit. Unit data can be a secret
 -- value in Midnight combat, which errors when tested, so callers ask inside pcall.

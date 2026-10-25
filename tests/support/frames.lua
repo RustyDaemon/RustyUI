@@ -40,9 +40,10 @@ local widgetMeta = {
 }
 
 local function newWidget(kind, name, parent)
+    -- The name is kept off the frame's own keys: Blizzard puts a font string at frame.name on some.
     local self = setmetatable({
         kind = kind,
-        name = name,
+        widgetName = name,
         parent = parent,
         calls = {},
         scripts = {},
@@ -75,7 +76,7 @@ frames.all = {}
 
 function widget:GetObjectType() return self.kind end
 function widget:IsObjectType(kind) return self.kind == kind end
-function widget:GetName() return self.name end
+function widget:GetName() return self.widgetName end
 
 function widget:SetWidth(w) self.width = w return self end
 function widget:SetHeight(h) self.height = h return self end
@@ -95,6 +96,7 @@ function widget:SetShown(value) if (value) then self:Show() else self:Hide() end
 function widget:IsShown() return self.shown end
 function widget:IsVisible() return self.shown end
 function widget:IsEnabled() return true end
+function widget:IsForbidden() return self.forbidden == true end
 
 function widget:SetAlpha(a) self.alpha = a return self end
 function widget:GetAlpha() return self.alpha end
@@ -107,7 +109,16 @@ end
 
 function widget:ClearAllPoints() self.points = {} return self end
 function widget:SetAllPoints() return self end
-function widget:GetPoint() return "CENTER", nil, "CENTER", 0, 0 end
+function widget:GetPoint(i)
+    local point = self.points[i or 1]
+
+    if (point) then return unpack(point) end
+
+    return "CENTER", nil, "CENTER", 0, 0
+end
+
+function widget:SetJustifyH(value) self.justifyH = value return self end
+function widget:GetJustifyH() return self.justifyH or "CENTER" end
 function widget:GetParent() return self.parent end
 function widget:GetNumPoints() return #self.points end
 function widget:GetRegions() return unpack(self.regions) end
@@ -192,6 +203,12 @@ function widget:SetVertexColor(r, g, b, a)
     return self
 end
 
+function widget:GetVertexColor()
+    if (self.vertex) then return unpack(self.vertex) end
+
+    return 1, 1, 1, 1
+end
+
 function widget:SetTexture(value)
     assert(value ~= nil, "SetTexture(nil)")
 
@@ -211,9 +228,15 @@ function widget:SetGradient(orientation, from, to)
     return self
 end
 
-function widget:CreateTexture(name)
-    return newWidget("Texture", name, self)
+function widget:CreateTexture(name, layer)
+    local texture = newWidget("Texture", name, self)
+
+    texture.layer = layer
+
+    return texture
 end
+
+function widget:GetDrawLayer() return self.layer or "ARTWORK" end
 
 function widget:CreateFontString(name)
     return newWidget("FontString", name, self)
@@ -247,9 +270,18 @@ function widget:SetStatusBarColor(r, g, b, a)
     return self
 end
 
+function widget:GetStatusBarColor()
+    if (self.barColor) then return unpack(self.barColor) end
+
+    return 1, 1, 1, 1
+end
+
 function widget:SetScrollChild(child) self.scrollChild = child return self end
 
 function frames.install()
+    -- A fresh client: frames from a load before no longer hear events.
+    frames.all = {}
+
     _G.UIParent = newWidget("Frame", "UIParent")
     _G.UIParent:SetSize(1920, 1080)
 

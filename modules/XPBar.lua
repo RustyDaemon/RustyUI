@@ -11,7 +11,8 @@ See License file for details.
 --   segmented  twenty bordered cells, filling like a charge meter
 --   panel      a kit card with the level, the bar and the numbers always shown
 --   edge       a glowing line along the bottom of the screen
--- At the level cap it shows the watched reputation instead, in its standing's color.
+-- At the level cap it shows the watched reputation instead, in its standing's color: friendships,
+-- paragon and renown included. It can hide there instead, and hides with no faction watched.
 
 local _, ns = ...
 
@@ -67,7 +68,7 @@ end
 -- How much taller than Blizzard's bar this one is, for the action bars to make room on clients
 -- where RustyUI lays them out. The screen-edge line is nowhere near them.
 function RUI:xpExtraGap()
-    if (not root or not RUI:isEnabled("xpbar")) then return 0 end
+    if (not root or not root:IsShown() or not RUI:isEnabled("xpbar")) then return 0 end
     if (not current or current.value == "edge") then return 0 end
 
     return math.max(RUI:xpHeight(current.value) - BLIZZARD_HEIGHT, 0)
@@ -82,20 +83,97 @@ local function maxLevel()
     return MAX_PLAYER_LEVEL or 60
 end
 
-local function watchedFaction()
+-- Renown and paragon have no standing of their own to take a color from.
+local RENOWN_COLOR = { r = 0.0, g = 0.62, b = 1.0 }
+
+-- A reputation snapshot: progress through the current step, a label for it, and its color. A step
+-- with nothing left to earn (Exalted, the last renown, a maxed friendship) shows full.
+local function repSnapshot(name, label, color, value, low, high)
+    local max = (high or 0) - (low or 0)
+    local full = max <= 0
+
+    if (full) then
+        value, max = 1, 1
+    else
+        value = math.min(math.max((value or low) - low, 0), max)
+    end
+
+    return { kind = "rep", name = name, label = label, color = color, value = value, max = max, full = full,
+        rested = 0 }
+end
+
+-- Friendships rank by their own names, not the usual standings.
+local function friendship(name, id)
+    local info = C_GossipInfo and C_GossipInfo.GetFriendshipReputation and C_GossipInfo.GetFriendshipReputation(id)
+
+    if (not info or not info.friendshipFactionID or info.friendshipFactionID == 0) then return nil end
+
+    return repSnapshot(name, info.reaction, FACTION_BAR_COLORS and FACTION_BAR_COLORS[5], info.standing,
+        info.reactionThreshold, info.nextThreshold)
+end
+
+-- A paragon faction past its last standing fills again toward each reward.
+local function paragon(name, id)
+    local api = C_Reputation
+    local isParagon = api and (api.IsFactionParagonForCurrentPlayer or api.IsFactionParagon)
+
+    if (not isParagon or not isParagon(id) or not api.GetFactionParagonInfo) then return nil end
+
+    local earned, threshold = api.GetFactionParagonInfo(id)
+
+    if (not earned or not threshold or threshold <= 0) then return nil end
+
+    return repSnapshot(name, "Paragon", RENOWN_COLOR, earned % threshold, 0, threshold)
+end
+
+-- A major faction counts renown levels, each with its own threshold.
+local function renown(name, id)
+    if (not (C_Reputation and C_Reputation.IsMajorFaction and C_Reputation.IsMajorFaction(id))) then return nil end
+
+    local faction = C_MajorFactions and C_MajorFactions.GetMajorFactionData(id)
+
+    if (not faction) then return nil end
+
+    local label = "Renown " .. (faction.renownLevel or 0)
+    local threshold = faction.renownLevelThreshold or 0
+
+    if (C_MajorFactions.HasMaximumRenown and C_MajorFactions.HasMaximumRenown(id)) then
+        return repSnapshot(name, label, RENOWN_COLOR, 0, 0, 0)
+    end
+
+    return repSnapshot(name, label, RENOWN_COLOR, faction.renownReputationEarned or 0, 0, threshold)
+end
+
+local function standingLabel(standing)
+    return _G["FACTION_STANDING_LABEL" .. (standing or 0)] or ""
+end
+
+local function standingColor(standing)
+    return FACTION_BAR_COLORS and FACTION_BAR_COLORS[standing]
+end
+
+local function watchedReputation()
     if (C_Reputation and C_Reputation.GetWatchedFactionData) then
         local faction = C_Reputation.GetWatchedFactionData()
 
-        if (faction and faction.name) then
-            return faction.name, faction.reaction, faction.currentReactionThreshold,
-                faction.nextReactionThreshold, faction.currentStanding
+        if (not faction or not faction.name) then return nil end
+
+        local name, id = faction.name, faction.factionID
+
+        if (id) then
+            local special = friendship(name, id) or paragon(name, id) or renown(name, id)
+
+            if (special) then return special end
         end
+
+        return repSnapshot(name, standingLabel(faction.reaction), standingColor(faction.reaction),
+            faction.currentStanding, faction.currentReactionThreshold, faction.nextReactionThreshold)
     end
 
     if (GetWatchedFactionInfo) then
         local name, standing, low, high, value = GetWatchedFactionInfo()
 
-        if (name) then return name, standing, low, high, value end
+        if (name) then return repSnapshot(name, standingLabel(standing), standingColor(standing), value, low, high) end
     end
 end
 
@@ -111,19 +189,16 @@ local function snapshot()
         end
     end
 
-    local name, standing, low, high, value = watchedFaction()
+    if (RUI.db.xpbar.atMax == "hide") then return nil end
 
-    if (name and high and low and high > low) then
-        return { kind = "rep", name = name, standing = standing, value = value - low, max = high - low, rested = 0 }
-    end
+    return watchedReputation()
 end
 
-local function fillColor(snap)
-    if (snap.kind == "rep") then
-        local color = FACTION_BAR_COLORS and FACTION_BAR_COLORS[snap.standing]
+-- Exposed for the specs; nothing else needs it.
+RUI.xpSnapshot = snapshot
 
-        if (color) then return color.r, color.g, color.b end
-    end
+local function fillColor(snap)
+    if (snap.kind == "rep" and snap.color) then return snap.color.r, snap.color.g, snap.color.b end
 
     return UI:rgb("accent")
 end
@@ -430,10 +505,12 @@ local function showTooltip()
         local r, g, b = fillColor(data)
 
         GameTooltip:SetText(data.name, 1, 1, 1)
-        GameTooltip:AddLine(_G["FACTION_STANDING_LABEL" .. (data.standing or 0)] or "", r, g, b)
-        GameTooltip:AddDoubleLine(REPUTATION or "Reputation",
-            number(data.value) .. " / " .. number(data.max) .. "  (" .. percent(data.value, data.max) .. ")",
-            dr, dg, db, 1, 1, 1)
+        GameTooltip:AddLine(data.label or "", r, g, b)
+
+        local progress = data.full and "Max"
+            or number(data.value) .. " / " .. number(data.max) .. "  (" .. percent(data.value, data.max) .. ")"
+
+        GameTooltip:AddDoubleLine(REPUTATION or "Reputation", progress, dr, dg, db, 1, 1, 1)
     end
 
     GameTooltip:Show()
@@ -527,14 +604,16 @@ end
 local function redraw()
     if (not root) then return end
 
-    data = snapshot()
+    local wasShown = root:IsShown()
+    local ok, snap = pcall(snapshot)
 
-    if (not data) then
-        root:Hide()
-        return
-    end
+    data = ok and snap or nil
+    root:SetShown(data ~= nil)
 
-    root:Show()
+    -- The action bars make room for a tall bar only while it shows.
+    if (root:IsShown() ~= wasShown) then RUI:refresh("actionbars") end
+
+    if (not data) then return end
 
     local view = root.views[current.value]
 
@@ -579,8 +658,8 @@ RUI:registerModule("xpbar", "XP bar", function()
     local events = CreateFrame("Frame")
 
     for _, event in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_XP_UPDATE", "PLAYER_LEVEL_UP",
-        "UPDATE_EXHAUSTION", "UPDATE_FACTION", "PLAYER_UPDATE_RESTING", "ENABLE_XP_GAIN",
-        "DISABLE_XP_GAIN", "PLAYER_REGEN_ENABLED" }) do
+        "UPDATE_EXHAUSTION", "UPDATE_FACTION", "MAJOR_FACTION_RENOWN_LEVEL_CHANGED", "PLAYER_UPDATE_RESTING",
+        "ENABLE_XP_GAIN", "DISABLE_XP_GAIN", "PLAYER_REGEN_ENABLED" }) do
         pcall(events.RegisterEvent, events, event)
     end
 

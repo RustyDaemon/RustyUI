@@ -139,14 +139,18 @@ local function accentCard(parent, preset, width, onPick)
     return card
 end
 
+-- Cards narrower than this cut their status text short, so the accents wrap into rows.
+local ACCENT_COLUMNS = 4
+
 -- accents is not an AceConfig type: the accent presets as preview cards, picked by clicking one.
 function builders.accents(parent, option, info, changed)
     local row = CreateFrame("Frame", nil, parent)
-    local count = #UI.accents
-    local width = math.floor((CONTENT_WIDTH - GAP * (count - 1)) / count)
+    local columns = math.min(#UI.accents, ACCENT_COLUMNS)
+    local rows = math.ceil(#UI.accents / columns)
+    local width = math.floor((CONTENT_WIDTH - GAP * (columns - 1)) / columns)
     local cards = {}
 
-    row:SetHeight(CARD_HEIGHT)
+    row:SetHeight(rows * CARD_HEIGHT + (rows - 1) * GAP)
 
     for i, preset in ipairs(UI.accents) do
         local card = accentCard(row, preset, width, function(value)
@@ -154,7 +158,9 @@ function builders.accents(parent, option, info, changed)
             changed()
         end)
 
-        card:SetPoint("TOPLEFT", (i - 1) * (width + GAP), 0)
+        local column, line = (i - 1) % columns, math.floor((i - 1) / columns)
+
+        card:SetPoint("TOPLEFT", column * (width + GAP), -line * (CARD_HEIGHT + GAP))
         cards[i] = card
     end
 

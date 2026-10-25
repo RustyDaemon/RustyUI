@@ -35,7 +35,8 @@ globals = {
 -- WoW client API. Readable, never assigned.
 read_globals = {
     -- namespaced client API
-    "C_AddOns", "C_Container", "C_Item", "C_Map", "C_PvP", "C_Reputation", "C_Timer", "Enum",
+    "C_AddOns", "C_Container", "C_GossipInfo", "C_Item", "C_MajorFactions", "C_Map", "C_NamePlate", "C_PvP",
+    "C_Reputation", "C_Timer", "Enum",
     "LibStub",
 
     -- frames and UI plumbing
@@ -61,10 +62,14 @@ read_globals = {
     "ObjectiveTrackerFrame",
     "GameMenuFrame", "GameMenuFrameHeader",
     "MirrorTimerContainer", "MirrorTimer_Show", "MirrorTimerColors", "MIRRORTIMER_NUMTIMERS", "TimerTracker",
+    "CharacterFrame", "CharacterLevelText", "CharacterModelScene", "CharacterStatsPane", "PaperDollFrame", "PaperDollItemsFrame",
+    "PaperDollSidebarTabs", "PaperDollFrame_UpdateStats", "EquipmentFlyoutFrame", "EquipmentFlyout_UpdateItems",
+    "QuestFrame", "QuestInfoRewardsFrame", "QuestInfo_Display", "QuestLogPopupDetailFrame", "GossipFrame",
+    "MerchantFrame", "MailFrame", "InboxFrame", "OpenMailFrame", "SendMailFrame",
 
     -- units, colors and the XP bar's numbers
     "UnitCastingInfo", "UnitChannelInfo", "UnitClass", "UnitClassification", "UnitExists", "UnitIsPlayer",
-    "UnitIsTapDenied", "UnitLevel", "UnitPowerType", "UnitReaction", "UnitXP", "UnitXPMax",
+    "UnitIsTapDenied", "UnitIsFriend", "UnitCanAttack", "UnitLevel", "UnitPowerType", "UnitReaction", "UnitXP", "UnitXPMax",
     "GetXPExhaustion", "IsXPUserDisabled", "GetMaxLevelForPlayerExpansion", "GetMaxPlayerLevel",
     "MAX_PLAYER_LEVEL", "GetWatchedFactionInfo", "SetPortraitTexture",
     "CUSTOM_CLASS_COLORS", "RAID_CLASS_COLORS", "FACTION_BAR_COLORS", "PowerBarColor", "ITEM_QUALITY_COLORS",
@@ -96,10 +101,12 @@ read_globals = {
 -- into _G, and the busted std supplies describe / it / before_each / assert.
 files["tests/**/*.lua"] = {
     std = "max+busted",
-    read_globals = { "UIParent", "RustyUISettingsFrame" },
+    read_globals = { "UIParent", "RustyUISettingsFrame", "CharacterHeadSlotFrame", "MerchantItem1NameFrame" },
     globals = {
         "print",                        -- settings_spec catches what RUI:safe reports
         "GameTooltip",                  -- modules_spec gives it a unit to show
+        "GossipFrame",                  -- and the gossip window its parchment
+        "DefaultCompactUnitFrameSetup", -- and Blizzard's raid frame setup, which the module hooks
     },
 }
 

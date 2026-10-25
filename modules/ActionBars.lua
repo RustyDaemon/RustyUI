@@ -193,6 +193,10 @@ local function applyArt(button)
     S:kill(button.SlotArt)
     S:kill(button.SlotBackground)
     S:kill(button.FlyoutBorderShadow)
+    -- Retail's main bar draws a divider into the gap after each button; past the last filled slot,
+    -- with the empty ones hidden, it stands on its own.
+    S:kill(button.RightDivider)
+    S:kill(button.BottomDivider)
     S:kill(part(button, "Border", "Border"))
     S:kill(part(button, "FloatingBG", "FloatingBG"))
 end

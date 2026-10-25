@@ -86,12 +86,14 @@ function S:killAll(paths)
 end
 
 -- Kills every texture drawn by the frame itself; its children keep theirs, and a status bar keeps
--- its fill.
-function S:stripTextures(frame)
+-- its fill. keep, a set of textures, spares the ones that are content rather than art.
+function S:stripTextures(frame, keep)
     local fill = frame.GetStatusBarTexture and frame:GetStatusBarTexture()
 
     for _, region in ipairs({ frame:GetRegions() }) do
-        if (region:IsObjectType("Texture") and region ~= fill) then S:kill(region) end
+        if (region:IsObjectType("Texture") and region ~= fill and not (keep and keep[region])) then
+            S:kill(region)
+        end
     end
 end
 
