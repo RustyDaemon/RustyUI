@@ -57,6 +57,21 @@ end
 
 S.crisp = function(_, texture) crisp(texture) end
 
+-- The kit's own borders (its panels, buttons and fields) are drawn the same way: unsnapped, and a
+-- physical pixel thick, measured again when the UI scale changes.
+UI.onBorder = function(frame, edges)
+    for i = 1, 4 do crisp(edges[i]) end
+
+    S:pixelPerfect(function()
+        local px = S:pixel(frame)
+
+        edges[1]:SetHeight(px)
+        edges[2]:SetHeight(px)
+        edges[3]:SetWidth(px)
+        edges[4]:SetWidth(px)
+    end)
+end
+
 -- How many physical pixels of dark rim a shadow draws outside a border.
 S.SHADOW_PIXELS = 1
 

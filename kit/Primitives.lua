@@ -1,14 +1,15 @@
 --[[
-RustyUI addon
+RustyKit UI kit 1.2.0
 Copyright (C) 2026 RustyDaemon (https://github.com/RustyDaemon)
 
 See License file for details.
+
+Synced from RustyKit (https://github.com/RustyDaemon/RustyKit): change it there, not in this copy.
 --]]
 
--- The kit's building blocks: borders, shadows, panels, text, tooltips and hover tints.
+-- The building blocks every control is made of: borders, panels, text, hover fades.
 
 local _, ns = ...
-
 local UI = ns.UI
 
 local function addBorder(frame, r, g, b, a)
@@ -17,31 +18,24 @@ local function addBorder(frame, r, g, b, a)
     for i = 1, 4 do
         local line = frame:CreateTexture(nil, "BORDER")
         line:SetColorTexture(r, g, b, a)
-        ns.Skin:crisp(line)
         edges[i] = line
     end
 
     edges[1]:SetPoint("TOPLEFT")
     edges[1]:SetPoint("TOPRIGHT")
+    edges[1]:SetHeight(1)
 
     edges[2]:SetPoint("BOTTOMLEFT")
     edges[2]:SetPoint("BOTTOMRIGHT")
+    edges[2]:SetHeight(1)
 
     edges[3]:SetPoint("TOPLEFT")
     edges[3]:SetPoint("BOTTOMLEFT")
+    edges[3]:SetWidth(1)
 
     edges[4]:SetPoint("TOPRIGHT")
     edges[4]:SetPoint("BOTTOMRIGHT")
-
-    -- One physical pixel thick, measured again when the UI scale changes (skin/Pixels.lua).
-    ns.Skin:pixelPerfect(function()
-        local px = ns.Skin:pixel(frame)
-
-        edges[1]:SetHeight(px)
-        edges[2]:SetHeight(px)
-        edges[3]:SetWidth(px)
-        edges[4]:SetWidth(px)
-    end)
+    edges[4]:SetWidth(1)
 
     frame.borderTextures = edges
 
@@ -50,6 +44,11 @@ local function addBorder(frame, r, g, b, a)
             edges[i]:SetColorTexture(br, bg, bb, ba or 1)
         end
     end
+
+    -- One unit is one screen pixel only at some UI scales. An addon that wants its borders a physical
+    -- pixel thin at every scale sets UI.onBorder, which gets the finished border's four lines (top,
+    -- bottom, left, right).
+    if (UI.onBorder) then UI.onBorder(frame, edges) end
 
     return frame
 end
@@ -89,10 +88,19 @@ end
 function UI:text(parent, size, colorName, flags)
     local fs = parent:CreateFontString(nil, "OVERLAY")
 
-    fs:SetFont(UI.font, self:fontSize(size or 12), flags or "")
+    fs:SetFont(self.font, self:fontSize(size or 12), flags or "")
     fs:SetTextColor(self:rgb(colorName or "text"))
     fs:SetShadowColor(0, 0, 0, 0.9)
     fs:SetShadowOffset(1, -1)
+
+    return fs
+end
+
+function UI:number(parent, size, colorName)
+    local fs = parent:CreateFontString(nil, "OVERLAY")
+
+    fs:SetFont(self.fontNumber, self:fontSize(size or 16), "OUTLINE")
+    fs:SetTextColor(self:rgb(colorName or "text"))
 
     return fs
 end
@@ -168,3 +176,22 @@ local function attachHover(frame, colorName, maxAlpha, layer)
 end
 
 UI.attachHover = function(_, frame, ...) return attachHover(frame, ...) end
+
+function UI:sectionHeading(parent, text)
+    local frame = CreateFrame("Frame", nil, parent)
+    frame:SetHeight(20)
+
+    local label = self:text(frame, 11, "textFaint")
+    label:SetPoint("LEFT", 2, 0)
+    label:SetText(text)
+
+    local rule = frame:CreateTexture(nil, "ARTWORK")
+    rule:SetPoint("LEFT", label, "RIGHT", 8, 0)
+    rule:SetPoint("RIGHT", -2, 0)
+    rule:SetHeight(1)
+    rule:SetColorTexture(UI:rgb("border"))
+
+    frame.label = label
+
+    return frame
+end

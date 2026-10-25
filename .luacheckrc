@@ -40,7 +40,7 @@ read_globals = {
     "LibStub",
 
     -- frames and UI plumbing
-    "CreateColor", "CreateFrame", "GetCursorPosition", "GetPhysicalScreenSize", "hooksecurefunc",
+    "CreateColor", "CreateFont", "CreateFrame", "GetCursorPosition", "GetPhysicalScreenSize", "hooksecurefunc",
     "InCombatLockdown", "PlaySound", "ReloadUI", "SOUNDKIT", "UIParent", "UISpecialFrames",
     "GameFontNormal", "NumberFontNormal", "GameTooltip", "GameTooltipStatusBar", "TooltipDataProcessor",
     "StaticPopup_Show", "EditModeManagerFrame",
@@ -114,7 +114,7 @@ files["tests/**/*.lua"] = {
 files["tests/support/*.lua"] = {
     std = "max+busted",
     globals = {
-        "UIParent", "CreateFrame", "CreateColor", "GameFontNormal", "NumberFontNormal", "GameTooltip",
+        "UIParent", "CreateFrame", "CreateColor", "CreateFont", "GameFontNormal", "NumberFontNormal", "GameTooltip",
         "issecretvalue", "hooksecurefunc", "C_AddOns", "C_Timer", "GetPhysicalScreenSize",
         "InCombatLockdown", "PlaySound", "SOUNDKIT", "GetCursorPosition", "ReloadUI", "UISpecialFrames",
         "SlashCmdList", "tinsert", "tContains", "wipe", "unpack", "RustyUIDB",

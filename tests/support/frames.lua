@@ -306,6 +306,22 @@ function frames.install()
     _G.GameFontNormal = fontObject()
     _G.NumberFontNormal = fontObject()
 
+    -- A font object of the addon's own answers with the file it was last given, as the client's does
+    -- once it has found the file. A file in frames.unloadable is one the client cannot find: the
+    -- object is left as it was.
+    frames.unloadable = {}
+
+    _G.CreateFont = function(name)
+        local font = newWidget("Font", name)
+
+        font.SetFont = function(self, file)
+            if (not frames.unloadable[file]) then self.file = file end
+        end
+        font.GetFont = function(self) return self.file end
+
+        return font
+    end
+
     local tooltip = newWidget("GameTooltip", "GameTooltip")
 
     tooltip.AddLine = function(self, _, r, g, b)

@@ -1,14 +1,15 @@
 --[[
-RustyUI addon
+RustyKit UI kit 1.2.0
 Copyright (C) 2026 RustyDaemon (https://github.com/RustyDaemon)
 
 See License file for details.
+
+Synced from RustyKit (https://github.com/RustyDaemon/RustyKit): change it there, not in this copy.
 --]]
 
--- The kit's controls: buttons, menus and dropdowns, toggles, scrollbars, fields and sliders.
+-- Interactive controls built from the primitives: buttons, menus, dropdowns, inputs, sliders.
 
 local _, ns = ...
-
 local UI = ns.UI
 
 function UI:button(parent, text, width, height, onClick)
@@ -30,8 +31,8 @@ function UI:button(parent, text, width, height, onClick)
     button.label = label
     button.bg = bg
 
-    button:SetScript("OnMouseDown", function() label:SetPoint("CENTER", 0, -1) end)
-    button:SetScript("OnMouseUp", function() label:SetPoint("CENTER", 0, 0) end)
+    button:SetScript("OnMouseDown", function(self) label:SetPoint("CENTER", 0, -1) end)
+    button:SetScript("OnMouseUp", function(self) label:SetPoint("CENTER", 0, 0) end)
 
     button:SetScript("OnClick", function(self, ...)
         PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
@@ -80,6 +81,69 @@ function UI:iconButton(parent, size, texture, onClick, texCoord)
     end)
 
     return button
+end
+
+function UI:searchBox(parent, width, height, placeholder, onChange)
+    local frame = self:panel(parent, "window", true)
+    frame:SetSize(width, height or 26)
+
+    local glass = frame:CreateTexture(nil, "ARTWORK")
+    glass:SetTexture("Interface\\Common\\UI-Searchbox-Icon")
+    glass:SetSize(14, 14)
+    glass:SetPoint("LEFT", 7, 0)
+    glass:SetVertexColor(self:rgb("textFaint"))
+
+    local editBox = CreateFrame("EditBox", nil, frame)
+    editBox:SetPoint("LEFT", 25, 0)
+    editBox:SetPoint("RIGHT", -22, 0)
+    editBox:SetHeight(height or 26)
+    editBox:SetAutoFocus(false)
+    editBox:SetFont(UI.font, self:fontSize(12), "")
+    editBox:SetTextColor(self:rgb("text"))
+
+    local hint = self:text(frame, 12, "textFaint")
+    hint:SetPoint("LEFT", 25, 0)
+    hint:SetText(placeholder or "")
+
+    local clear = self:iconButton(frame, 16, "Interface\\Buttons\\UI-StopButton")
+    clear:SetPoint("RIGHT", -4, 0)
+    clear:Hide()
+
+    local function refreshChrome()
+        local hasText = editBox:GetText() ~= ""
+
+        hint:SetShown(not hasText)
+        clear:SetShown(hasText)
+    end
+
+    editBox:SetScript("OnTextChanged", function(self, userInput)
+        refreshChrome()
+
+        if (onChange) then onChange(self:GetText(), userInput) end
+    end)
+
+    editBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    editBox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+
+    editBox:SetScript("OnEditFocusGained", function() frame:SetBorderColor(UI:rgb("accentDim")) end)
+    editBox:SetScript("OnEditFocusLost", function() frame:SetBorderColor(UI:rgb("border")) end)
+
+    clear:SetScript("OnClick", function()
+        editBox:SetText("")
+        editBox:ClearFocus()
+    end)
+
+    frame:EnableMouse(true)
+    frame:SetScript("OnMouseDown", function() editBox:SetFocus() end)
+
+    frame.editBox = editBox
+
+    frame.SetValue = function(_, value)
+        editBox:SetText(value or "")
+        refreshChrome()
+    end
+
+    return frame
 end
 
 -- A floating list of choices, closed by picking one or clicking anywhere else. Position it, then
@@ -219,6 +283,134 @@ function UI:dropdown(parent, width, height, label, getItems, getValue, onSelect)
     return frame
 end
 
+-- A tile with a caption, one big number and a footnote under it, edged in the accent color named.
+-- Fill it with card:Set(text, note, colorName).
+function UI:statCard(parent, caption, accentColorName)
+    local card = self:panel(parent, "panel", true)
+
+    card:EnableMouse(true)
+
+    self:attachHover(card, "panelHover", 0.6, "BORDER")
+
+    local stripe = card:CreateTexture(nil, "ARTWORK")
+    stripe:SetPoint("TOPLEFT")
+    stripe:SetPoint("BOTTOMLEFT")
+    stripe:SetWidth(2)
+    stripe:SetColorTexture(self:rgb(accentColorName or "accentDim"))
+
+    local title = self:text(card, 10, "textFaint")
+    title:SetPoint("TOPLEFT", 12, -10)
+    title:SetText(caption)
+
+    local value = self:number(card, 22, "text")
+    value:SetPoint("TOPLEFT", 11, -25)
+
+    local footnote = self:text(card, 10, "textDim")
+    footnote:SetPoint("BOTTOMLEFT", 12, 9)
+    footnote:SetPoint("BOTTOMRIGHT", -8, 9)
+    footnote:SetJustifyH("LEFT")
+    footnote:SetWordWrap(false)
+
+    card.value = value
+    card.footnote = footnote
+    card.stripe = stripe
+
+    card.Set = function(_, text, note, colorName)
+        value:SetText(text)
+        value:SetTextColor(UI:rgb(colorName or "text"))
+        footnote:SetText(note or "")
+    end
+
+    return card
+end
+
+function UI:segmented(parent, height, options, getValue, onSelect)
+    local frame = self:panel(parent, "window", true)
+    frame:SetHeight(height or 26)
+
+    local buttons = {}
+
+    for i = 1, #options do
+        local option = options[i]
+        local button = CreateFrame("Button", nil, frame)
+
+        button:SetHeight((height or 26) - 2)
+        UI:attachHover(button, "raised", 1, "BACKGROUND")
+
+        local label = self:text(button, 12, "textDim")
+        label:SetPoint("CENTER")
+        label:SetText(option.text)
+
+        local lit = button:CreateTexture(nil, "BORDER")
+        lit:SetAllPoints()
+        lit:SetColorTexture(self:rgb("accentLit"))
+        lit:Hide()
+
+        local underline = button:CreateTexture(nil, "OVERLAY")
+        underline:SetPoint("BOTTOMLEFT", 0, 0)
+        underline:SetPoint("BOTTOMRIGHT", 0, 0)
+        underline:SetHeight(2)
+        underline:SetColorTexture(self:rgb("accent"))
+        underline:Hide()
+
+        button.value = option.value
+        button.label = label
+        button.lit = lit
+        button.underline = underline
+
+        button:SetScript("OnClick", function(self)
+            PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
+            onSelect(self.value)
+        end)
+
+        if (i > 1) then
+            local divider = frame:CreateTexture(nil, "OVERLAY")
+            divider:SetPoint("TOPLEFT", button, "TOPLEFT", -1, -4)
+            divider:SetPoint("BOTTOMLEFT", button, "BOTTOMLEFT", -1, 4)
+            divider:SetWidth(1)
+            divider:SetColorTexture(self:rgb("border"))
+        end
+
+        buttons[i] = button
+    end
+
+    -- Sized from the labels, and again on show: a font that was still loading measured 0 wide.
+    local function layout()
+        local totalWidth = 2
+
+        for i = 1, #buttons do
+            local button = buttons[i]
+            local width = math.max(button.label:GetStringWidth() + 22, 44)
+
+            button:SetWidth(width)
+            button:SetPoint("TOPLEFT", frame, "TOPLEFT", totalWidth - 1, -1)
+            totalWidth = totalWidth + width
+        end
+
+        frame:SetWidth(totalWidth)
+    end
+
+    layout()
+    frame:HookScript("OnShow", layout)
+
+    frame.Refresh = function()
+        local current = getValue()
+
+        for i = 1, #buttons do
+            local button = buttons[i]
+            local active = button.value == current
+
+            button.lit:SetShown(active)
+            button.underline:SetShown(active)
+            button.label:SetTextColor(UI:rgbIf(active, "accent", "textDim"))
+        end
+    end
+
+    frame:Refresh()
+
+    return frame
+end
+
 function UI:toggle(parent, text, getValue, onToggle)
     local button = CreateFrame("Button", nil, parent)
     local box = self:panel(button, "window", true)
@@ -346,25 +538,6 @@ function UI:scrollbar(parent, onScroll)
     end
 
     return bar
-end
-
-function UI:sectionHeading(parent, text)
-    local frame = CreateFrame("Frame", nil, parent)
-    frame:SetHeight(20)
-
-    local label = self:text(frame, 11, "textFaint")
-    label:SetPoint("LEFT", 2, 0)
-    label:SetText(text)
-
-    local rule = frame:CreateTexture(nil, "ARTWORK")
-    rule:SetPoint("LEFT", label, "RIGHT", 8, 0)
-    rule:SetPoint("RIGHT", -2, 0)
-    rule:SetHeight(1)
-    rule:SetColorTexture(UI:rgb("border"))
-
-    frame.label = label
-
-    return frame
 end
 
 local function formatStep(value, step)
